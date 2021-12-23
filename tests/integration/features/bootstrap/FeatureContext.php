@@ -2044,13 +2044,14 @@ class FeatureContext implements Context, SnippetAcceptingContext {
 	}
 
 	/**
-	 * @Given /^user "([^"]*)" react with "([^"]*)" on message "([^"]*)" to room "([^"]*)" with (\d+)(?: \((v1)\))?$/
+	 * @Given /^user "([^"]*)" (delete react|react) with "([^"]*)" on message "([^"]*)" to room "([^"]*)" with (\d+)(?: \((v1)\))?$/
 	 */
-	public function userReactWithOnMessageToRoomWith(string $user, string $emoji, string $message, string $identifier, int $statusCode, string $apiVersion = 'v1'): void {
+	public function userReactWithOnMessageToRoomWith(string $user, string $action, string $emoji, string $message, string $identifier, int $statusCode, string $apiVersion = 'v1'): void {
 		$token = self::$identifierToToken[$identifier];
 		$messageId = self::$messages[$message];
 		$this->setCurrentUser($user);
-		$this->sendRequest('POST', '/apps/spreed/api/' . $apiVersion . '/reaction/' . $token . '/' . $messageId, [
+		$verb = $action === 'react' ? 'POST' : 'DELETE';
+		$this->sendRequest($verb, '/apps/spreed/api/' . $apiVersion . '/reaction/' . $token . '/' . $messageId, [
 			'emoji' => $emoji
 		]);
 		$this->assertStatusCode($this->response, $statusCode);

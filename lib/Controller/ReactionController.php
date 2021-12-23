@@ -29,10 +29,13 @@ use OCA\Talk\Chat\CommentsManager;
 use OCA\Talk\Chat\ReactionManager;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Comments\NotFoundException;
 use OCP\IRequest;
 
 class ReactionController extends AEnvironmentAwareController {
+	/** @var ITimeFactory */
+	protected $timeFactory;
 	/** @var CommentsManager */
 	private $commentsManager;
 	/** @var ReactionManager */
@@ -40,10 +43,12 @@ class ReactionController extends AEnvironmentAwareController {
 
 	public function __construct(string $appName,
 								IRequest $request,
+								ITimeFactory $timeFactory,
 								CommentsManager $commentsManager,
 								ReactionManager $reactionManager) {
 		parent::__construct($appName, $request);
 
+		$this->timeFactory = $timeFactory;
 		$this->commentsManager = $commentsManager;
 		$this->reactionManager = $reactionManager;
 	}
@@ -81,6 +86,35 @@ class ReactionController extends AEnvironmentAwareController {
 
 		try {
 			$this->reactionManager->addReactionMessage($this->getRoom(), $participant, $messageId, $emoji);
+		} catch (\Exception $e) {
+			return new DataResponse([], Http::STATUS_BAD_REQUEST);
+		}
+
+		return new DataResponse([], Http::STATUS_CREATED);
+	}
+
+	/**
+	 * @NoAdminRequired
+	 * @RequireParticipant
+	 * @RequireReadWriteConversation
+	 * @RequireModeratorOrNoLobby
+	 *
+	 * @param int $messageId for reaction
+	 * @param string $emoji the reaction emoji
+	 * @return DataResponse
+	 */
+	public function delete(int $messageId, string $emoji): DataResponse {
+		$participant = $this->getParticipant();
+
+		try {
+			$this->reactionManager->deleteReactionMessage(
+				$participant,
+				$messageId,
+				$emoji,
+				$this->timeFactory->getDateTime()
+			);
+		} catch (NotFoundException $e) {
+			return new DataResponse([], Http::STATUS_NOT_FOUND);
 		} catch (\Exception $e) {
 			return new DataResponse([], Http::STATUS_BAD_REQUEST);
 		}

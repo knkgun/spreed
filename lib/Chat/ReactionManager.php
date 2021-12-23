@@ -51,4 +51,23 @@ class ReactionManager {
 		$this->commentsManager->save($comment);
 		return $comment;
 	}
+
+	public function deleteReactionMessage(Participant $participant, int $messageId, string $emoji, \DateTime $deletionTime): IComment {
+		$comment = $this->commentsManager->getReactionComment(
+			$messageId,
+			$participant->getAttendee()->getActorType(),
+			$participant->getAttendee()->getActorId(),
+			$emoji
+		);
+		$comment->setMessage(
+			json_encode([
+				'deleted_by_type' => $participant->getAttendee()->getActorType(),
+				'deleted_by_id' => $participant->getAttendee()->getActorId(),
+				'deleted_on' => $deletionTime->getTimestamp(),
+			])
+		);
+		$comment->setVerb('reaction_delete');
+		$this->commentsManager->save($comment);
+		return $comment;
+	}
 }
